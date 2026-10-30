@@ -88,27 +88,31 @@ directly with the terminal toolset instead of delegating.
   tighten, and untrusted dirs (like the work copy) load none at all.
 - No `ask` rules in this policy on purpose: `pi -p` runs are unattended and an
   unanswered prompt only times out to deny after 60s. Keep it that way.
-- pi's binary lives at `/root/.pi/agent/bin/pi` (not on the default PATH). Never invoke it as `npx pi` — npm's `pi` package is a different program that exits 0 printing a bare "3" for every invocation, including `--version`, so failures look like successes. `export PATH=/root/.pi/agent/bin:$PATH` instead.
+- pi's binary lives at `/root/.pi/agent/bin/pi` (not on the default PATH). Never
+  invoke it as `npx pi` — npm's `pi` package is a different program that exits 0
+  printing a bare "3" for every invocation, including `--version`, so failures
+  look like successes. `export PATH=/root/.pi/agent/bin:$PATH` instead.
 - The pi-auto-mode bash-command gate lives in /root/pi-auto-mode (local checkout
-  of github.com/5c077m4n/pi-auto-mode). Run it with
-  `pi -e /root/pi-auto-mode` and OPENROUTER_API_KEY in env (it lives in
-  /var/lib/hermes/home/.env); without the key it blocks every bash command.
-  Push from that repo needs the token embedded in the remote URL:
+  of github.com/5c077m4n/pi-auto-mode). Run it with `pi -e /root/pi-auto-mode`
+  and OPENROUTER_API_KEY in env (it lives in /var/lib/hermes/home/.env); without
+  the key it blocks every bash command. Push from that repo needs the token
+  embedded in the remote URL:
   `git remote set-url origin "https://5c077m4n:${GH_TOKEN}@github.com/5c077m4n/pi-auto-mode.git"`
   (source GH_TOKEN from /var/lib/hermes/home/.env), push, then reset the URL to
   the clean https form.
 - Declare type-only imports (e.g. `@earendil-works/pi-coding-agent`) as real
-  devDependencies, not ad-hoc node_modules installs: any later `npm
+  devDependencies, not ad-hoc node_modules installs: any later
+  `npm
   update/install` prunes extraneous packages and typechecking breaks
-  mysteriously. Symlinking into node_modules is only for projects that must
-  not take the dependency.
+  mysteriously. Symlinking into node_modules is only for projects that must not
+  take the dependency.
 - A large diff still needs review before applying; show the user the summary.
 - If pi exits non-zero, treat the diff as unreliable and do not apply it.
 - Never run `npm install` in a project whose `node_modules` is (or was) a
-  symlink into pi's managed install tree — npm follows the link and prunes
-  pi's own packages, leaving the `pi` launcher unable to start. Repair with
-  `npm ci` inside `/root/.pi/agent/install/releases/<version>`. Symlink
-  `@earendil-works` into the project's `node_modules` only AFTER npm has
-  finished, for typechecking.
+  symlink into pi's managed install tree — npm follows the link and prunes pi's
+  own packages, leaving the `pi` launcher unable to start. Repair with `npm ci`
+  inside `/root/.pi/agent/install/releases/<version>`. Symlink `@earendil-works`
+  into the project's `node_modules` only AFTER npm has finished, for
+  typechecking.
 - Writing a pi extension (tool-call gate, command, hook): follow
   `references/pi-extensions.md`.

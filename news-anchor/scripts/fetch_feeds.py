@@ -64,12 +64,16 @@ def fetch_source(name: str, url: str, limit: int) -> tuple[str, str]:
     return name, "\n".join(lines)
 
 
-def main() -> int:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch RSS headlines")
     parser.add_argument("--source", help="fetch only this source (exact name)")
     parser.add_argument("--limit", type=int, default=8, help="items per source")
     parser.add_argument("--list", action="store_true", help="list source names")
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
 
     if args.list:
         for name in ALL_SOURCES:

@@ -24,13 +24,13 @@ or wind for a location.
 
 The skill decides how many days to fetch based on the user's question:
 
-| User phrasing                          | `--days` value |
-| -------------------------------------- | -------------- |
-| "now", "today", "current"              | 1              |
-| "tomorrow"                             | 2              |
-| "this week", "rest of the week"        | 7              |
+| User phrasing                           | `--days` value |
+| --------------------------------------- | -------------- |
+| "now", "today", "current"               | 1              |
+| "tomorrow"                              | 2              |
+| "this week", "rest of the week"         | 7              |
 | "this weekend"                          | through Sunday |
-| "next week"                            | 14             |
+| "next week"                             | 14             |
 | unqualified ("what's the weather in X") | 3              |
 
 ## Procedure
@@ -40,7 +40,7 @@ the venv):
 
 ```bash
 uv run --project "$SKILL_DIR" "$SKILL_DIR/scripts/fetch_weather.py" \
-  --lat 32.0263 --lon 34.8881 --days 7 --label "Kiryat Ono"
+  --lat 32.0263 --lon 34.8881 --days 7 --label "New York"
 ```
 
 - Look up the latitude and longitude for the requested location first (or use
@@ -55,6 +55,6 @@ uv run --project "$SKILL_DIR" "$SKILL_DIR/scripts/fetch_weather.py" \
 - Always pass `--days` explicitly; the default of 3 is a fallback, not a hint.
 - Coordinates must be decimal degrees (e.g. 32.0263, not 32°1'35").
 - Expand abbreviated place names before geocoding — the user says "k Ono" for
-  Kiryat Ono; a raw abbreviation fails coordinate lookup, so map it to the
-  full name first.
+  Kiryat Ono; a raw abbreviation fails coordinate lookup, so map it to the full
+  name first.
 - open-meteo supports up to 16 forecast days on the free tier.
