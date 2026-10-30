@@ -81,11 +81,7 @@ class WeatherReport(BaseModel):
     @property
     def forecasts(self) -> list[DailyForecast]:
         series = self.daily
-        lengths = {
-            len(getattr(series, field) or [])
-            for field in DailySeries.model_fields
-            if field != "time"
-        }
+        lengths = {len(getattr(series, field) or []) for field in DailySeries.model_fields if field != "time"}
         longest = max(lengths | {len(series.time)})
 
         def read(series: list[float] | None, index: int, default: float) -> float:
