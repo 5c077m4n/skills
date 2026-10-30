@@ -13,26 +13,41 @@ Usage:
 """
 
 import argparse
+import asyncio
 import sys
-from concurrent.futures import ThreadPoolExecutor
+from collections import namedtuple
 from typing import Annotated
+from urllib.parse import urlencode, urlunparse
 
 import feedparser
 from pydantic import BaseModel, Field
 
-ALL_SOURCES: dict[str, str] = {
-    "Israel Hayom": "https://www.israelhayom.co.il/rss.xml",
-    "YNet": "https://www.ynet.co.il/Integration/StoryRss2.xml",
-    "Walla": "https://rss.walla.co.il/feed/1",
-    "Walla World": "https://rss.walla.co.il/feed/2",
-    "Cyber Security News": "https://rss.app/feeds/Ho4gIVhEXQwiIoOx.xml",
-    "Reuters via Google": (
-        "https://news.google.com/rss/search?q=when:24h+site:reuters.com" + "&ceid=US:en&hl=en-US&gl=US"
+URLParts = namedtuple(
+    typename="URLParts",
+    field_names=["scheme", "netloc", "url", "path", "query", "fragment"],
+    defaults=("", "", ""),
+)
+
+ALL_SOURCES: dict[str, str | bytes] = {
+    "Israel Hayom": urlunparse(URLParts(scheme="https", netloc="www.israelhayom.co.il", url="/rss.xml")),
+    "YNet": urlunparse(URLParts(scheme="https", netloc="www.ynet.co.il", url="/Integration/StoryRss2.xml")),
+    "Walla": urlunparse(URLParts(scheme="https", netloc="rss.walla.co.il", url="/feed/1")),
+    "Walla World": urlunparse(URLParts(scheme="https", netloc="rss.walla.co.il", url="/feed/2")),
+    "Cyber Security News": urlunparse(
+        URLParts(scheme="https", netloc="rss.app", url="/feeds/Ho4gIVhEXQwiIoOx.xml")
     ),
-    "BeepingComputer": "https://www.bleepingcomputer.com/feed/",
-    "Hacker News": "https://news.ycombinator.com/rss",
-    "TechCrunch": "https://techcrunch.com/feed/",
-    "Lobsters": "https://lobste.rs/top/rss",
+    "Reuters via Google": urlunparse(
+        URLParts(
+            scheme="https",
+            netloc="news.google.com",
+            url="/rss/search",
+            query=urlencode({"q": "when:24h site:reuters.com", "ceid": "US:en", "hl": "en-US", "gl": "US"}),
+        )
+    ),
+    "BeepingComputer": urlunparse(URLParts(scheme="https", netloc="www.bleepingcomputer.com", url="/feed/")),
+    "Hacker News": urlunparse(URLParts(scheme="https", netloc="news.ycombinator.com", url="/rss")),
+    "TechCrunch": urlunparse(URLParts(scheme="https", netloc="techcrunch.com", url="/feed/")),
+    "Lobsters": urlunparse(URLParts(scheme="https", netloc="lobste.rs", url="/top/rss")),
 }
 
 USER_AGENT = "Mozilla/5.0 (compatible; HermesNewsAnchor/1.0)"
@@ -47,21 +62,32 @@ class FeedPage(BaseModel):
     items: Annotated[list[FeedItem], Field(default_factory=list)]
 
 
-def fetch_source(name: str, url: str, limit: int) -> tuple[str, str]:
-    """Return (source_name, formatted_items). Never raises."""
+class FeedResult(BaseModel):
+    name: str
+    url: str
+    error: Annotated[str | None, Field(default=None)]
+    items: Annotated[list[FeedItem], Field(default_factory=list)]
+
+    def to_string(self) -> str:
+        if self.error:
+            return f"  [{self.error}]"
+        lines = [f"  - {item.title}\n    {item.link}" for item in self.items]
+        if not lines:
+            return "  [no items found]"
+        return "\n".join(lines)
+
+
+async def fetch_source(name: str, url: str, limit: int) -> FeedResult:
+    """Fetch one source and return structured data. Never raises."""
+    result = FeedResult(name=name, url=url, error=None, items=[])
     try:
-        parsed = feedparser.parse(url, agent=USER_AGENT)
+        parsed = await asyncio.to_thread(feedparser.parse, url, agent=USER_AGENT)
     except OSError as exc:
-        return name, f"  [error fetching {url}: {exc}]"
+        result.error = f"error fetching {url}: {exc}"
+        return result
 
-    page = FeedPage.model_validate(
-        {"items": [{"title": e.get("title", ""), "link": e.get("link", "")} for e in parsed.entries[:limit]]}
-    )
-
-    lines = [f"  - {item.title}\n    {item.link}" for item in page.items]
-    if not lines:
-        return name, "  [no items found]"
-    return name, "\n".join(lines)
+    result.items = [FeedItem.model_validate(e) for e in parsed.entries[:limit]]
+    return result
 
 
 def parse_args() -> argparse.Namespace:
@@ -72,7 +98,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+async def main() -> int:
     args = parse_args()
 
     if args.list:
@@ -90,12 +116,13 @@ def main() -> int:
             return 1
         sources = {args.source: ALL_SOURCES[args.source]}
 
-    with ThreadPoolExecutor(max_workers=len(sources)) as pool:
-        futures = [pool.submit(fetch_source, n, u, args.limit) for n, u in sources.items()]
-        for name, body in (f.result() for f in futures):
-            print(f"\n[{name}]\n{body}")
+    async with asyncio.TaskGroup() as tg:
+        tasks = [tg.create_task(fetch_source(name, str(url), args.limit)) for name, url in sources.items()]
+    for result in (task.result() for task in tasks):
+        print(f"\n[{result.name}]\n{result.to_string()}")
+
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(asyncio.run(main()))
