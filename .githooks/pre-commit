@@ -3,3 +3,23 @@
 set -euo pipefail
 
 gitleaks git --verbose
+
+mapfile -t changed_py < <(git diff --cached --name-only --diff-filter=ACMR -- '*.py')
+if [ "${#changed_py[@]}" -gt 0 ]; then
+	declare -A skill_dirs=()
+	for f in "${changed_py[@]}"; do
+		skill_dirs["${f%%/*}"]=1
+	done
+
+	for skill in "${!skill_dirs[@]}"; do
+		[ -f "$skill/pyproject.toml" ] || continue
+		echo "==> ruff check ($skill)"
+		(cd "$skill" && uvx ruff check "${changed_py[@]/$skill\//}")
+
+		echo "==> ruff format --check ($skill)"
+		(cd "$skill" && uvx ruff format --check "${changed_py[@]/$skill\//}")
+
+		echo "==> ty check ($skill)"
+		(cd "$skill" && uv sync --quiet && uvx ty check --project . .)
+	done
+fi
