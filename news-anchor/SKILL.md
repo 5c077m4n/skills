@@ -80,8 +80,10 @@ up", or invokes `/news-anchor`.
 - Never truncate or paraphrase URLs; never output only the source name without
   the full clickable link.
 - Do not re-run the script per source; one run fetches everything in parallel.
-- Google News links are wrapped/redirect URLs; report them as-is, they resolve
-  correctly.
+- Google News links are wrapped/redirect URLs; report them as-is, they resolve correctly.
+- The script lets feedparser fetch each URL itself (gzip/Atom/RSS handled internally). If you ever hand feedparser raw bytes instead, it does NOT auto-decompress gzip — some feeds gzip unconditionally and parsing them yields "not well-formed (invalid token)" with zero entries.
+- feedparser has no timeout parameter and the user wants no socket timeout added — do not wrap fetches in socket.setdefaulttimeout or similar caps.
+- Walla's working RSS scheme is `https://rss.walla.co.il/feed/<id>`; the legacy `walla.co.il/rss/...` URLs return an HTML page, not XML.
 - If every feed fails, say so plainly (likely network issue on the host) instead
   of inventing headlines.
 
