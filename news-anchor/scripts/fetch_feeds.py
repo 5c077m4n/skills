@@ -20,7 +20,7 @@ from typing import Annotated
 import feedparser
 from pydantic import BaseModel, Field
 
-ALL_SOURCES = {
+ALL_SOURCES: dict[str, str] = {
     "Israel Hayom": "https://www.israelhayom.co.il/rss.xml",
     "YNet": "https://www.ynet.co.il/Integration/StoryRss2.xml",
     "Walla": "https://rss.walla.co.il/feed/1",
