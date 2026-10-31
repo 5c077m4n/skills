@@ -3,7 +3,7 @@ name = "weather-skill"
 version = "0.1.0"
 description = "Fetch daily weather from open-meteo.com and format a compact report"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.11"]
+dependencies = ["pydantic>=2.11", "pydantic-settings>=2.7"]
 
 [tool.ruff]
 line-length = 110

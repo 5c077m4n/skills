@@ -12,7 +12,6 @@ Usage:
   fetch_feeds.py --limit 5       # items per source
 """
 
-import argparse
 import asyncio
 import sys
 from collections import namedtuple
@@ -20,7 +19,8 @@ from typing import Annotated
 from urllib.parse import urlencode, urlunparse
 
 import feedparser
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from pydantic_settings import BaseSettings, CliImplicitFlag, SettingsConfigDict
 
 URLParts = namedtuple(
     typename="URLParts",
@@ -90,16 +90,19 @@ async def fetch_source(name: str, url: str, limit: int) -> FeedResult:
     return result
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Fetch RSS headlines")
-    parser.add_argument("--source", help="fetch only this source (exact name)")
-    parser.add_argument("--limit", type=int, default=8, help="items per source")
-    parser.add_argument("--list", action="store_true", help="list source names")
-    return parser.parse_args()
+class Args(BaseSettings):
+    model_config = SettingsConfigDict(cli_parse_args=True)
+
+    source: str | None = None
+    limit: Annotated[int, Field(default=8)]
+    list: CliImplicitFlag[bool] = False
 
 
 async def main() -> int:
-    args = parse_args()
+    try:
+        args = Args()
+    except ValidationError as error:
+        raise SystemExit(str(error)) from error
 
     if args.list:
         for name in ALL_SOURCES:

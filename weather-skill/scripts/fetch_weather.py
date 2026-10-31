@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Fetch daily weather from open-meteo.com and format a compact report."""
 
-import argparse
 import urllib.parse
 import urllib.request
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API = "https://api.open-meteo.com/v1/forecast"
 WEATHER_LABELS: dict[int, str] = {
@@ -101,13 +101,13 @@ class WeatherReport(BaseModel):
         ]
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--lat", required=True, type=float)
-    parser.add_argument("--lon", required=True, type=float)
-    parser.add_argument("--days", type=int, default=3)
-    parser.add_argument("--label", default=None)
-    return parser.parse_args()
+class Args(BaseSettings):
+    model_config = SettingsConfigDict(cli_parse_args=True)
+
+    lat: float
+    lon: float
+    days: Annotated[int, Field(default=3)]
+    label: str | None = None
 
 
 def fetch(lat: float, lon: float, days: int) -> WeatherReport:
@@ -145,7 +145,10 @@ def format_report(report: WeatherReport, label: str | None) -> str:
 
 
 def main() -> None:
-    args = parse_args()
+    try:
+        args = Args()
+    except ValidationError as error:
+        raise SystemExit(str(error)) from error
     report = fetch(lat=args.lat, lon=args.lon, days=args.days)
     print(format_report(report=report, label=args.label))
 

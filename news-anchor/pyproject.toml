@@ -3,7 +3,7 @@ name = "news-anchor"
 version = "0.1.0"
 description = "Fetch headlines from the configured RSS sources"
 requires-python = ">=3.12"
-dependencies = ["feedparser>=6.0", "pydantic>=2.11"]
+dependencies = ["feedparser>=6.0", "pydantic>=2.11", "pydantic-settings>=2.7"]
 
 [tool.ruff]
 line-length = 110
