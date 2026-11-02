@@ -15,13 +15,13 @@ Usage:
 
 import asyncio
 import sys
-import time
 from collections import namedtuple
-from typing import Annotated
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Any
 from urllib.parse import urlencode, urlunparse
 
 import feedparser
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, ValidationInfo, model_validator
 from pydantic_settings import BaseSettings, CliImplicitFlag, SettingsConfigDict
 
 URLParts = namedtuple(
@@ -61,6 +61,18 @@ class FeedItem(BaseModel):
     title: Annotated[str, Field(default="")]
     link: Annotated[str, Field(default="")]
 
+    @model_validator(mode="before")
+    @classmethod
+    def within_timeframe(cls, entry: Any, info: ValidationInfo) -> Any:
+        ts = entry.get("published_parsed") or entry.get("updated_parsed")
+        if ts is None:
+            raise ValueError("no publish date")
+        published = datetime(*tuple(ts)[:6], tzinfo=UTC)
+        cutoff = info.context["cutoff"] if info.context else datetime.max.replace(tzinfo=UTC)
+        if published < cutoff:
+            raise ValueError("outside timeframe")
+        return entry
+
 
 class FeedPage(BaseModel):
     items: Annotated[list[FeedItem], Field(default_factory=list)]
@@ -71,8 +83,6 @@ class FeedResult(BaseModel):
     url: str
     error: Annotated[str | None, Field(default=None)]
     items: Annotated[list[FeedItem], Field(default_factory=list)]
-    dropped: int = 0
-    undated: int = 0
 
     def to_string(self) -> str:
         if self.error:
@@ -80,17 +90,10 @@ class FeedResult(BaseModel):
         lines = [f"  - {item.title}\n    {item.link}" for item in self.items]
         if not lines:
             return "  [no items found]"
-        footer = []
-        if self.dropped:
-            footer.append(f"{self.dropped} dropped outside timeframe")
-        if self.undated:
-            footer.append(f"{self.undated} dropped without a date")
-        if footer:
-            lines.append("  [" + ", ".join(footer) + "]")
         return "\n".join(lines)
 
 
-async def fetch_source(name: str, url: str, limit: int, cutoff: float) -> FeedResult:
+async def fetch_source(name: str, url: str, limit: int, cutoff: datetime) -> FeedResult:
     """Fetch one source and return structured data. Never raises."""
     result = FeedResult(name=name, url=url, error=None, items=[])
     try:
@@ -102,14 +105,10 @@ async def fetch_source(name: str, url: str, limit: int, cutoff: float) -> FeedRe
     for entry in parsed.entries:
         if len(result.items) >= limit:
             break
-        ts = entry.get("published_parsed") or entry.get("updated_parsed")
-        if ts is None:
-            result.undated += 1
+        try:
+            result.items.append(FeedItem.model_validate(entry, context={"cutoff": cutoff}))
+        except ValidationError:
             continue
-        if time.mktime(ts) < cutoff:
-            result.dropped += 1
-            continue
-        result.items.append(FeedItem.model_validate(entry))
     return result
 
 
@@ -118,7 +117,7 @@ class Args(BaseSettings):
 
     source: str | None = None
     limit: Annotated[int, Field(default=8)]
-    hours: Annotated[int, Field(default=24)]
+    hours: int = 24
     list: CliImplicitFlag[bool] = False
 
 
@@ -143,7 +142,7 @@ async def main() -> int:
             return 1
         sources = {args.source: sources[args.source]}
 
-    cutoff = time.time() - args.hours * 3600
+    cutoff = datetime.now(tz=UTC) - timedelta(hours=args.hours)
     async with asyncio.TaskGroup() as tg:
         tasks = [
             tg.create_task(fetch_source(name, str(url), args.limit, cutoff))
