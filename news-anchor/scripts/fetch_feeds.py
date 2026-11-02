@@ -10,11 +10,12 @@ Usage:
   fetch_feeds.py                 # all sources, N items each
   fetch_feeds.py --source YNet   # a single source
   fetch_feeds.py --limit 5       # items per source
-  fetch_feeds.py --telegram      # also fetch Telegram channels (off by default)
+  fetch_feeds.py --hours 6       # only items from the last 6 hours
 """
 
 import asyncio
 import sys
+import time
 from collections import namedtuple
 from typing import Annotated
 from urllib.parse import urlencode, urlunparse
@@ -49,9 +50,6 @@ ALL_SOURCES: dict[str, str | bytes] = {
     "Hacker News": urlunparse(URLParts(scheme="https", netloc="news.ycombinator.com", url="/rss")),
     "TechCrunch": urlunparse(URLParts(scheme="https", netloc="techcrunch.com", url="/feed/")),
     "Lobsters": urlunparse(URLParts(scheme="https", netloc="lobste.rs", url="/top/rss")),
-}
-
-TELEGRAM_SOURCES: dict[str, str | bytes] = {
     "Abu Ali Express": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/abualiexpress")),
     "Amit Segal": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/amitsegal")),
 }
@@ -73,6 +71,8 @@ class FeedResult(BaseModel):
     url: str
     error: Annotated[str | None, Field(default=None)]
     items: Annotated[list[FeedItem], Field(default_factory=list)]
+    dropped: int = 0
+    undated: int = 0
 
     def to_string(self) -> str:
         if self.error:
@@ -80,10 +80,17 @@ class FeedResult(BaseModel):
         lines = [f"  - {item.title}\n    {item.link}" for item in self.items]
         if not lines:
             return "  [no items found]"
+        footer = []
+        if self.dropped:
+            footer.append(f"{self.dropped} dropped outside timeframe")
+        if self.undated:
+            footer.append(f"{self.undated} dropped without a date")
+        if footer:
+            lines.append("  [" + ", ".join(footer) + "]")
         return "\n".join(lines)
 
 
-async def fetch_source(name: str, url: str, limit: int) -> FeedResult:
+async def fetch_source(name: str, url: str, limit: int, cutoff: float) -> FeedResult:
     """Fetch one source and return structured data. Never raises."""
     result = FeedResult(name=name, url=url, error=None, items=[])
     try:
@@ -92,7 +99,17 @@ async def fetch_source(name: str, url: str, limit: int) -> FeedResult:
         result.error = f"error fetching {url}: {exc}"
         return result
 
-    result.items = [FeedItem.model_validate(e) for e in parsed.entries[:limit]]
+    for entry in parsed.entries:
+        if len(result.items) >= limit:
+            break
+        ts = entry.get("published_parsed") or entry.get("updated_parsed")
+        if ts is None:
+            result.undated += 1
+            continue
+        if time.mktime(ts) < cutoff:
+            result.dropped += 1
+            continue
+        result.items.append(FeedItem.model_validate(entry))
     return result
 
 
@@ -101,8 +118,8 @@ class Args(BaseSettings):
 
     source: str | None = None
     limit: Annotated[int, Field(default=8)]
+    hours: Annotated[int, Field(default=24)]
     list: CliImplicitFlag[bool] = False
-    telegram: CliImplicitFlag[bool] = False
 
 
 async def main() -> int:
@@ -112,13 +129,11 @@ async def main() -> int:
         raise SystemExit(str(error)) from error
 
     if args.list:
-        for name in ALL_SOURCES | TELEGRAM_SOURCES:
+        for name in ALL_SOURCES:
             print(name)
         return 0
 
     sources = ALL_SOURCES
-    if args.telegram:
-        sources = sources | TELEGRAM_SOURCES
     if args.source:
         if args.source not in sources:
             print(
@@ -128,8 +143,12 @@ async def main() -> int:
             return 1
         sources = {args.source: sources[args.source]}
 
+    cutoff = time.time() - args.hours * 3600
     async with asyncio.TaskGroup() as tg:
-        tasks = [tg.create_task(fetch_source(name, str(url), args.limit)) for name, url in sources.items()]
+        tasks = [
+            tg.create_task(fetch_source(name, str(url), args.limit, cutoff))
+            for name, url in sources.items()
+        ]
     for result in (task.result() for task in tasks):
         print(f"\n[{result.name}]\n{result.to_string()}")
 
