@@ -29,6 +29,11 @@ and deliver a concise spoken-style briefing.
 | Hacker News         | Tech/developer community    |
 | TechCrunch          | Startups & tech business    |
 | Lobsters            | Developer/tech community    |
+| Abu Ali Express     | Telegram channel, Israeli/security OSINT (Hebrew) |
+| Amit Segal          | Telegram channel, Israeli political reporting (Hebrew) |
+
+When the briefing includes the Telegram channels, keep attribution clear
+(Telegram channel name, not a website).
 
 ## When to Use
 
@@ -45,6 +50,8 @@ up", or invokes `/news-anchor`.
 
    - `--source <name>` fetches a single source (run `--list` to see names).
    - `--limit N` controls items per source.
+   - `--hours N` selects the timeframe (default 24): entries older than N hours
+     or without any publish date are silently excluded by pydantic validation.
    - Feeds run in parallel; a failing feed reports `[error fetching ...]`
      instead of aborting the whole run.
 
@@ -83,6 +90,11 @@ up", or invokes `/news-anchor`.
 - Google News links are wrapped/redirect URLs; report them as-is, they resolve correctly.
 - The script lets feedparser fetch each URL itself (gzip/Atom/RSS handled internally). If you ever hand feedparser raw bytes instead, it does NOT auto-decompress gzip — some feeds gzip unconditionally and parsing them yields "not well-formed (invalid token)" with zero entries.
 - feedparser has no timeout parameter and the user wants no socket timeout added — do not wrap fetches in socket.setdefaulttimeout or similar caps.
+- Telegram channels are consumed as RSS via the `tg.i-c-a.su` bridge
+  (`/rss/<channel_username>`); rsshub.app rejects these with 403
+  (Cloudflare). The bridge is a third-party dependency — if it goes down the
+  affected sources just report `[error fetching ...]`; do not switch to
+  `https://t.me/s/<channel>` scraping, which is HTML, not a feed.
 - Walla's working RSS scheme is `https://rss.walla.co.il/feed/<id>`; the legacy `walla.co.il/rss/...` URLs return an HTML page, not XML.
 - If every feed fails, say so plainly (likely network issue on the host) instead
   of inventing headlines.
