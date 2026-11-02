@@ -10,6 +10,7 @@ Usage:
   fetch_feeds.py                 # all sources, N items each
   fetch_feeds.py --source YNet   # a single source
   fetch_feeds.py --limit 5       # items per source
+  fetch_feeds.py --telegram      # also fetch Telegram channels (off by default)
 """
 
 import asyncio
@@ -48,6 +49,11 @@ ALL_SOURCES: dict[str, str | bytes] = {
     "Hacker News": urlunparse(URLParts(scheme="https", netloc="news.ycombinator.com", url="/rss")),
     "TechCrunch": urlunparse(URLParts(scheme="https", netloc="techcrunch.com", url="/feed/")),
     "Lobsters": urlunparse(URLParts(scheme="https", netloc="lobste.rs", url="/top/rss")),
+}
+
+TELEGRAM_SOURCES: dict[str, str | bytes] = {
+    "Abu Ali Express": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/abualiexpress")),
+    "Amit Segal": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/amitsegal")),
 }
 
 USER_AGENT = "Mozilla/5.0 (compatible; HermesNewsAnchor/1.0)"
@@ -96,6 +102,7 @@ class Args(BaseSettings):
     source: str | None = None
     limit: Annotated[int, Field(default=8)]
     list: CliImplicitFlag[bool] = False
+    telegram: CliImplicitFlag[bool] = False
 
 
 async def main() -> int:
@@ -105,19 +112,21 @@ async def main() -> int:
         raise SystemExit(str(error)) from error
 
     if args.list:
-        for name in ALL_SOURCES:
+        for name in ALL_SOURCES | TELEGRAM_SOURCES:
             print(name)
         return 0
 
     sources = ALL_SOURCES
+    if args.telegram:
+        sources = sources | TELEGRAM_SOURCES
     if args.source:
-        if args.source not in ALL_SOURCES:
+        if args.source not in sources:
             print(
-                f"Unknown source {args.source!r}. Available: " + ", ".join(ALL_SOURCES),
+                f"Unknown source {args.source!r}. Available: " + ", ".join(sources),
                 file=sys.stderr,
             )
             return 1
-        sources = {args.source: ALL_SOURCES[args.source]}
+        sources = {args.source: sources[args.source]}
 
     async with asyncio.TaskGroup() as tg:
         tasks = [tg.create_task(fetch_source(name, str(url), args.limit)) for name, url in sources.items()]
