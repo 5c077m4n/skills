@@ -51,9 +51,7 @@ up", or invokes `/news-anchor`.
    - `--source <name>` fetches a single source (run `--list` to see names).
    - `--limit N` controls items per source.
    - `--hours N` selects the timeframe (default 24): entries older than N hours
-     are dropped, and each source reports how many were excluded — e.g.
-     `[4 dropped outside timeframe]`. Entries without any publish date are
-     dropped too and reported as `dropped without a date`.
+     or without any publish date are silently excluded by pydantic validation.
    - Feeds run in parallel; a failing feed reports `[error fetching ...]`
      instead of aborting the whole run.
 
