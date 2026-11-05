@@ -57,6 +57,7 @@ ALL_SOURCES: dict[str, str | bytes] = {
     "Hacker News": urlunparse(URLParts(scheme="https", netloc="news.ycombinator.com", url="/rss")),
     "TechCrunch": urlunparse(URLParts(scheme="https", netloc="techcrunch.com", url="/feed/")),
     "Lobsters": urlunparse(URLParts(scheme="https", netloc="lobste.rs", url="/top/rss")),
+    "Business Insider": urlunparse(URLParts(scheme="https", netloc="www.businessinsider.com", url="/rss")),
     "Abu Ali Express": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/abualiexpress")),
     "Amit Segal": urlunparse(URLParts(scheme="https", netloc="tg.i-c-a.su", url="/rss/amitsegal")),
 }
