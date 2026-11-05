@@ -4,13 +4,36 @@
 import urllib.parse
 import urllib.request
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Final
 
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-API = "https://api.open-meteo.com/v1/forecast"
-WEATHER_LABELS: dict[int, str] = {
+API: Final[str] = "https://api.open-meteo.com/v1/forecast"
+WEATHER_EMOJI: Final[dict[int, str]] = {
+    0: "☀️",
+    1: "🌤️",
+    2: "⛅",
+    3: "☁️",
+    45: "🌫️",
+    48: "🌫️",
+    51: "🌦️",
+    53: "🌦️",
+    55: "🌧️",
+    61: "🌦️",
+    63: "🌧️",
+    65: "🌧️",
+    71: "🌨️",
+    73: "🌨️",
+    75: "❄️",
+    80: "🌦️",
+    81: "🌧️",
+    82: "⛈️",
+    95: "⛈️",
+    96: "⛈️",
+    99: "⛈️",
+}
+WEATHER_LABELS: Final[dict[int, str]] = {
     0: "Clear sky",
     1: "Mainly clear",
     2: "Partly cloudy",
@@ -49,9 +72,22 @@ class DailyForecast(BaseModel):
         return WEATHER_LABELS.get(self.weather_code, "Unknown")
 
     @property
+    def emoji(self) -> str:
+        return WEATHER_EMOJI.get(self.weather_code, "🌡️")
+
+    @property
     def short_date(self) -> str:
         parsed = datetime.strptime(self.date, "%Y-%m-%d").date()
         return f"{parsed:%a} {parsed:%d/%m}"
+
+    def stringify(self) -> str:
+        rain_part = "no rain" if self.rain_chance == 0 else f"{self.rain_chance}% chance of rain"
+        return (
+            f"{self.emoji} {self.short_date}: {self.label}, "
+            + f"{round(self.temp_min)}° to {round(self.temp_max)}°C, "
+            + f"{rain_part}, humidity {round(self.humidity)}%, "
+            + f"wind up to {round(self.wind_speed)} km/h"
+        )
 
 
 class DailySeries(BaseModel):
@@ -135,12 +171,7 @@ def fetch(lat: float, lon: float, days: int) -> WeatherReport:
 def format_report(report: WeatherReport, label: str | None) -> str:
     heading = label or report.heading
     lines = [f"Weather for {heading} ({report.timezone}):", ""]
-    for forecast in report.forecasts:
-        lines.append(
-            f"{forecast.short_date}: {round(forecast.temp_max)}°C / {round(forecast.temp_min)}°C, "
-            + f"rain {forecast.rain_chance}%, wind {round(forecast.wind_speed)} km/h, "
-            + f"humidity {round(forecast.humidity)}%, {forecast.label}"
-        )
+    lines.extend(forecast.stringify() for forecast in report.forecasts)
     return "\n".join(lines)
 
 
