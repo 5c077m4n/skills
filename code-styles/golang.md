@@ -1,17 +1,15 @@
 # Go Code Style
 
-Conventions for Go code in this repo (e.g. 1run, hermes-aws-setup). Go
-formatting is enforced by tools, so most of this is about structure and
-taste.
+Conventions for Go code. Go formatting is enforced by tools, so most of
+this is about structure and taste.
 
 ## Tooling
 
 - Always run `gofmt` (or `go fmt ./...`) before committing — no
   hand-formatted code.
 - Run `go vet ./...` and fix everything it reports.
-- Build with `CGO_ENABLED=1 go build ./...` when the project uses cgo
-  (e.g. microsandbox); a plain `go build` can pass while the real build
-  fails.
+- When the project uses cgo, build with `CGO_ENABLED=1 go build ./...` —
+  a plain `go build` can pass while the real build fails.
 
 ## Style
 
@@ -28,8 +26,8 @@ taste.
 
 ## Multi-module workspaces
 
-- Split by deployment boundary (e.g. `api/` user-facing service, `vm/`
-  sandbox lifecycle) via `go.work` when components should build and
-  deploy independently.
+- Split by deployment boundary (e.g. a user-facing service vs. a
+  resource-lifecycle component) via `go.work` when components should
+  build and deploy independently.
 - Keep each module's `go.mod` self-contained; shared types go in a
-  dedicated package, generated protobuf code in `pb/`.
+  dedicated package, generated code in its own package (e.g. `pb/`).
