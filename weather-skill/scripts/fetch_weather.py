@@ -4,13 +4,13 @@
 import urllib.parse
 import urllib.request
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Final
 
 from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-API = "https://api.open-meteo.com/v1/forecast"
-WEATHER_EMOJI: dict[int, str] = {
+API: Final[str] = "https://api.open-meteo.com/v1/forecast"
+WEATHER_EMOJI: Final[dict[int, str]] = {
     0: "☀️",
     1: "🌤️",
     2: "⛅",
@@ -33,7 +33,7 @@ WEATHER_EMOJI: dict[int, str] = {
     96: "⛈️",
     99: "⛈️",
 }
-WEATHER_LABELS: dict[int, str] = {
+WEATHER_LABELS: Final[dict[int, str]] = {
     0: "Clear sky",
     1: "Mainly clear",
     2: "Partly cloudy",
@@ -79,6 +79,15 @@ class DailyForecast(BaseModel):
     def short_date(self) -> str:
         parsed = datetime.strptime(self.date, "%Y-%m-%d").date()
         return f"{parsed:%a} {parsed:%d/%m}"
+
+    def stringify(self) -> str:
+        rain_part = "no rain" if self.rain_chance == 0 else f"{self.rain_chance}% chance of rain"
+        return (
+            f"{self.emoji} {self.short_date}: {self.label}, "
+            + f"{round(self.temp_min)}° to {round(self.temp_max)}°C, "
+            + f"{rain_part}, humidity {round(self.humidity)}%, "
+            + f"wind up to {round(self.wind_speed)} km/h"
+        )
 
 
 class DailySeries(BaseModel):
@@ -162,14 +171,7 @@ def fetch(lat: float, lon: float, days: int) -> WeatherReport:
 def format_report(report: WeatherReport, label: str | None) -> str:
     heading = label or report.heading
     lines = [f"Weather for {heading} ({report.timezone}):", ""]
-    for forecast in report.forecasts:
-        rain_part = "no rain" if forecast.rain_chance == 0 else f"{forecast.rain_chance}% chance of rain"
-        lines.append(
-            f"{forecast.emoji} {forecast.short_date}: {forecast.label}, "
-            + f"{round(forecast.temp_min)}° to {round(forecast.temp_max)}°C, "
-            + f"{rain_part}, humidity {round(forecast.humidity)}%, "
-            + f"wind up to {round(forecast.wind_speed)} km/h"
-        )
+    lines.extend(forecast.stringify() for forecast in report.forecasts)
     return "\n".join(lines)
 
 
