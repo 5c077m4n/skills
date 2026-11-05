@@ -9,6 +9,9 @@ for types.
 - `pyright` must show no new errors vs the base branch; when a quirk
   forces a workaround, match the convention already used in the file
   rather than adding a new one.
+- Run `ty check` (Astral's type checker) as well; treat it as a
+  secondary gate — fix real issues it reports, and if a finding is a
+  false positive, prefer restructuring the code over suppressing it.
 - Scripts are run via `uv run` with the project directory as the root.
 
 ## Style
