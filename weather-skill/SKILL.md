@@ -47,8 +47,9 @@ uv run --project "$SKILL_DIR" "$SKILL_DIR/scripts/fetch_weather.py" \
   known coordinates for common places).
 - `--label` is optional and replaces the raw lat/lon heading in the report.
 - The output is plain text, one line per day:
-  `Www DD/MM: high°C / low°C, rain N%, wind N km/h, humidity N%, condition`
-  (weekday short name comes from the script itself).
+  `<emoji> Www DD/MM: <condition>, <low>° to <high>°C, rain phrase, humidity N%, wind up to N km/h`
+  (weekday short name and emoji come from the script itself; zero rain chance
+  is phrased as "no rain").
 
 ## Pitfalls
 
@@ -58,3 +59,6 @@ uv run --project "$SKILL_DIR" "$SKILL_DIR/scripts/fetch_weather.py" \
   Kiryat Ono; a raw abbreviation fails coordinate lookup, so map it to the full
   name first.
 - open-meteo supports up to 16 forecast days on the free tier.
+- Repo code style (user-enforced): declare global constants with `Final`, and
+  put output-formatting logic in an instance method on the data class rather
+  than a free function — build per-day lines via a `stringify()`-style method.
