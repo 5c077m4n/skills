@@ -23,6 +23,7 @@ and deliver a concise spoken-style briefing.
 | YNet                | Israeli news (Hebrew)       |
 | Walla               | Israeli news (Hebrew)       |
 | Walla World         | World news (Hebrew)         |
+| Globes              | Israeli business news (Hebrew) |
 | Cyber Security News | InfoSec headlines           |
 | Reuters via Google  | Global wire news (last 24h) |
 | BeepingComputer     | InfoSec incidents/malware   |

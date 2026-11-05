@@ -35,6 +35,13 @@ ALL_SOURCES: dict[str, str | bytes] = {
     "YNet": urlunparse(URLParts(scheme="https", netloc="www.ynet.co.il", url="/Integration/StoryRss2.xml")),
     "Walla": urlunparse(URLParts(scheme="https", netloc="rss.walla.co.il", url="/feed/1")),
     "Walla World": urlunparse(URLParts(scheme="https", netloc="rss.walla.co.il", url="/feed/2")),
+    "Globes": urlunparse(
+        URLParts(
+            scheme="https",
+            netloc="www.globes.co.il",
+            url="/webservice/rss/rssfeeder.asmx/FeederNode?iID=2",
+        )
+    ),
     "Cyber Security News": urlunparse(
         URLParts(scheme="https", netloc="rss.app", url="/feeds/Ho4gIVhEXQwiIoOx.xml")
     ),
