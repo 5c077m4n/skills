@@ -10,6 +10,29 @@ from pydantic import BaseModel, Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 API = "https://api.open-meteo.com/v1/forecast"
+WEATHER_EMOJI: dict[int, str] = {
+    0: "☀️",
+    1: "🌤️",
+    2: "⛅",
+    3: "☁️",
+    45: "🌫️",
+    48: "🌫️",
+    51: "🌦️",
+    53: "🌦️",
+    55: "🌧️",
+    61: "🌦️",
+    63: "🌧️",
+    65: "🌧️",
+    71: "🌨️",
+    73: "🌨️",
+    75: "❄️",
+    80: "🌦️",
+    81: "🌧️",
+    82: "⛈️",
+    95: "⛈️",
+    96: "⛈️",
+    99: "⛈️",
+}
 WEATHER_LABELS: dict[int, str] = {
     0: "Clear sky",
     1: "Mainly clear",
@@ -47,6 +70,10 @@ class DailyForecast(BaseModel):
     @property
     def label(self) -> str:
         return WEATHER_LABELS.get(self.weather_code, "Unknown")
+
+    @property
+    def emoji(self) -> str:
+        return WEATHER_EMOJI.get(self.weather_code, "🌡️")
 
     @property
     def short_date(self) -> str:
@@ -136,10 +163,12 @@ def format_report(report: WeatherReport, label: str | None) -> str:
     heading = label or report.heading
     lines = [f"Weather for {heading} ({report.timezone}):", ""]
     for forecast in report.forecasts:
+        rain_part = "no rain" if forecast.rain_chance == 0 else f"{forecast.rain_chance}% chance of rain"
         lines.append(
-            f"{forecast.short_date}: {round(forecast.temp_max)}°C / {round(forecast.temp_min)}°C, "
-            + f"rain {forecast.rain_chance}%, wind {round(forecast.wind_speed)} km/h, "
-            + f"humidity {round(forecast.humidity)}%, {forecast.label}"
+            f"{forecast.emoji} {forecast.short_date}: {forecast.label}, "
+            + f"{round(forecast.temp_min)}° to {round(forecast.temp_max)}°C, "
+            + f"{rain_part}, humidity {round(forecast.humidity)}%, "
+            + f"wind up to {round(forecast.wind_speed)} km/h"
         )
     return "\n".join(lines)
 
