@@ -136,6 +136,12 @@ class WeatherReport(BaseModel):
             for index in range(longest)
         ]
 
+    def stringify(self, label: str | None = None) -> str:
+        heading = label or self.heading
+        lines = [f"Weather for {heading} ({self.timezone}):", ""]
+        lines.extend(forecast.stringify() for forecast in self.forecasts)
+        return "\n".join(lines)
+
 
 class Args(BaseSettings):
     model_config = SettingsConfigDict(cli_parse_args=True)
@@ -168,20 +174,13 @@ def fetch(lat: float, lon: float, days: int) -> WeatherReport:
         return WeatherReport.model_validate_json(response.read())
 
 
-def format_report(report: WeatherReport, label: str | None) -> str:
-    heading = label or report.heading
-    lines = [f"Weather for {heading} ({report.timezone}):", ""]
-    lines.extend(forecast.stringify() for forecast in report.forecasts)
-    return "\n".join(lines)
-
-
 def main() -> None:
     try:
         args = Args()
     except ValidationError as error:
         raise SystemExit(str(error)) from error
     report = fetch(lat=args.lat, lon=args.lon, days=args.days)
-    print(format_report(report=report, label=args.label))
+    print(report.stringify(label=args.label))
 
 
 if __name__ == "__main__":
