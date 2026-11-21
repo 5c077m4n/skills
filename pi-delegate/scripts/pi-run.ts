@@ -18,7 +18,13 @@ const cwd = values.cwd ?? process.cwd();
 const resourceLoader = new DefaultResourceLoader({
 	cwd,
 	agentDir: getAgentDir(),
-	systemPromptOverride: (base) => `${base}\n\nStrict rules:\n- Do NOT run any git command.\n- Work only inside this directory.\n- When finished, print ONLY the unified diff of every change you made — no prose, no summaries.`,
+	systemPromptOverride: (base) => `${base}
+
+Strict rules:
+- Do NOT run any git command.
+- Work only inside this directory.
+- When finished, print ONLY the unified diff of every change you made — no prose, no summaries.
+`,
 });
 await resourceLoader.reload();
 
