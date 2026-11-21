@@ -1,7 +1,7 @@
 ---
 name: pi-delegate
 description: Use when delegating large coding tasks to the pi coding agent.
-version: 1.1.1
+version: 1.2.0
 platforms: [linux, macos]
 metadata:
   hermes:
@@ -57,7 +57,7 @@ directly with the terminal toolset instead of delegating.
 
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
-   (cd "$RUNNER" && npm install --no-fund --no-audit >/dev/null)
+   (cd "$RUNNER" && npm ci --no-fund --no-audit >/dev/null)
    (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.mts" "<task description>")
    ```
 
@@ -103,17 +103,16 @@ directly with the terminal toolset instead of delegating.
   (source GH_TOKEN from SSM `/hermes/gh_token`), push, then reset the URL to
   the clean https form.
 - Declare type-only imports (e.g. `@earendil-works/pi-coding-agent`) as real
-  devDependencies, not ad-hoc node_modules installs: any later
-  `npm update/install` prunes extraneous packages and typechecking breaks
-  mysteriously. The runner script sidesteps this by installing into its own
-  temp dir.
-- A large diff still needs review before applying; show the user the summary.
-- If pi exits non-zero, treat the diff as unreliable and do not apply it.
+  devDependencies in a package.json with a committed lockfile — not ad-hoc
+  node_modules installs: any later `npm update/install` prunes extraneous
+  packages and typechecking breaks mysteriously. The runner is its own node
+  project in the skill dir for exactly this reason.
 - Never run `npm install` in a project whose `node_modules` is (or was) a
   symlink into pi's managed install tree — npm follows the link and prunes pi's
   own packages, leaving the `pi` launcher unable to start. Repair with `npm ci`
-  inside `/root/.pi/agent/install/releases/<version>`. The runner project
-  sidesteps this by living in its own directory.
+  inside `/root/.pi/agent/install/releases/<version>`.
+- A large diff still needs review before applying; show the user the summary.
+- If pi exits non-zero, treat the diff as unreliable and do not apply it.
 - Writing a pi extension (tool-call gate, command, hook): follow
   `references/pi-extensions.md`.
 - SDK reference examples live at
