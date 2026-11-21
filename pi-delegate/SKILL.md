@@ -17,7 +17,8 @@ SDK (`@earendil-works/pi-coding-agent`) by the runner script in
 `scripts/pi-run.ts`. pi never runs git and never reaches outside its work
 directory: the permission policy denies every `git *` bash command and sets
 `external_directory: deny`. pi works on a disposable copy of the workspace and
-returns a unified diff, which hermes reviews, applies, and continues from.
+must print ONLY a unified diff of its changes — never apply anything to the
+live workspace. hermes reviews, applies, and continues from that diff.
 
 No Docker is involved — pi runs directly on the machine; the permission plugin
 is the policy layer.
@@ -36,8 +37,9 @@ directly with the terminal toolset instead of delegating.
   `git *` deny rule is the enforcement; the prompt ban is a second line of
   defense.
 - pi works on a **copy** of the workspace, never the live one.
-- The result pi returns is a **unified diff**. hermes applies it to the real
-  workspace and continues the work from there.
+- pi must **print only a unified diff** of its changes — no prose, no summaries.
+  hermes applies it to the real workspace with `patch` and continues the work
+  from there.
 
 ## Procedure
 
@@ -73,7 +75,9 @@ directly with the terminal toolset instead of delegating.
    a prompt that times out to deny, and anything outside the work dir is
    blocked.
 
-3. Generate the unified diff between pristine and pi's edited copy:
+3. Capture pi's printed diff and cross-check it against the filesystem with a
+   `diff -ruN` between pristine and pi's edited copy (pi's own diff can be
+   incomplete or noisy; the filesystem diff is the ground truth):
 
    ```bash
    diff -ruN $EXCLUDES "$PRISTINE" "$WORK" > "$SRC/pi-task.patch" || true

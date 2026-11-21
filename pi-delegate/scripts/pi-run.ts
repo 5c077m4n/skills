@@ -26,7 +26,11 @@ try {
 			process.stdout.write(event.assistantMessageEvent.delta);
 		}
 	});
-	await session.prompt(task + " Strict rule: do NOT run any git command. Work only inside this directory.");
+	await session.prompt(
+		task +
+			" Strict rule: do NOT run any git command. Work only inside this directory. " +
+			"When finished, print ONLY the unified diff of every change you made — no prose, no summaries.",
+	);
 } finally {
 	session.dispose();
 }
