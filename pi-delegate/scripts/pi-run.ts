@@ -6,7 +6,7 @@ import { createAgentSession, DefaultResourceLoader, getAgentDir, SessionManager 
 const { values } = parseArgs({
 	options: {
 		cwd: { type: "string" },
-		task: { type: "string" },
+		task: { type: "string", required: true },
 	},
 });
 if (!values.task) {
