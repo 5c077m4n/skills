@@ -1,18 +1,22 @@
 // Runner: executes one pi task via the official SDK, non-interactively.
-// Usage: npx tsx pi-run.mts "<task description>" (cwd = pi's work directory).
-import { createAgentSession, ModelRuntime, SessionManager } from "@earendil-works/pi-coding-agent";
+// Usage: npx tsx pi-run.ts "<task description>" (cwd = pi's work directory).
+import { createAgentSession, DefaultResourceLoader, getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 
 const task = process.argv[2];
 if (!task) {
-	console.error("usage: npx tsx pi-run.mts \"<task>\"");
+	console.error("usage: npx tsx pi-run.ts \"<task>\"");
 	process.exit(2);
 }
 
-const modelRuntime = await ModelRuntime.create();
+const resourceLoader = new DefaultResourceLoader({
+	cwd: process.cwd(),
+	agentDir: getAgentDir(),
+});
+await resourceLoader.reload();
 
 const { session } = await createAgentSession({
 	cwd: process.cwd(),
-	modelRuntime,
+	resourceLoader,
 	sessionManager: SessionManager.inMemory(),
 });
 

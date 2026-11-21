@@ -14,7 +14,7 @@ metadata:
 
 Hand large coding tasks to the pi coding agent, driven through the official
 SDK (`@earendil-works/pi-coding-agent`) by the runner script in
-`scripts/pi-run.mts`. pi never runs git and never reaches outside its work
+`scripts/pi-run.ts`. pi never runs git and never reaches outside its work
 directory: the permission policy denies every `git *` bash command and sets
 `external_directory: deny`. pi works on a disposable copy of the workspace and
 returns a unified diff, which hermes reviews, applies, and continues from.
@@ -58,12 +58,15 @@ directly with the terminal toolset instead of delegating.
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
    (cd "$RUNNER" && npm ci --no-fund --no-audit >/dev/null)
-   (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.mts" "<task description>")
+   (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.ts" "<task description>")
    ```
 
-   The runner imports `createAgentSession` / `ModelRuntime` from
-   `@earendil-works/pi-coding-agent`, streams text deltas to stdout, and
-   disposes the session in a `finally` block.
+   The runner imports `createAgentSession`, `DefaultResourceLoader`,
+   `getAgentDir` and `SessionManager` from `@earendil-works/pi-coding-agent`,
+   builds a resource loader over pi's agent dir so the installed extensions
+   load — `pi-permission-system` (the policy layer) and `pi-auto-mode` (the
+   bash-command judge) — streams text deltas to stdout, and disposes the
+   session in a `finally` block.
 
    The plugin gates every tool call: `git *` is denied, unparseable or
    indirection-wrapped bash (`bash -c`, `sudo`, `eval`, `xargs`) fails closed to
