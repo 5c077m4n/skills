@@ -24,7 +24,7 @@ await resourceLoader.reload();
 const { session } = await createAgentSession({
 	cwd,
 	resourceLoader,
-	sessionManager: SessionManager.inMemory(),
+	sessionManager: SessionManager.create(cwd),
 });
 
 try {
