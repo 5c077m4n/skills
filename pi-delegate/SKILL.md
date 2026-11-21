@@ -53,22 +53,17 @@ directly with the terminal toolset instead of delegating.
 
 2. The runner is a self-contained node project (`package.json` + `package-lock.json`,
    deps `@earendil-works/pi-coding-agent` + `tsx`). Install it once, then run pi
-   via the SDK in the work copy. The OpenRouter key is fetched from AWS SSM
-   per-run and never written to disk:
+   via the SDK in the work copy (provider auth comes from pi's own auth store):
 
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
    (cd "$RUNNER" && npm install --no-fund --no-audit >/dev/null)
-
-   export OPENROUTER_API_KEY="$(aws ssm get-parameter --region il-central-1 \
-     --name /hermes/openrouter_key --with-decryption --query Parameter.Value --output text)"
    (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.mts" "<task description>")
    ```
 
    The runner imports `createAgentSession` / `ModelRuntime` from
-   `@earendil-works/pi-coding-agent`, sets the OpenRouter key via
-   `modelRuntime.setRuntimeApiKey("openrouter", …)`, streams text deltas to
-   stdout, and disposes the session in a `finally` block.
+   `@earendil-works/pi-coding-agent`, streams text deltas to stdout, and
+   disposes the session in a `finally` block.
 
    The plugin gates every tool call: `git *` is denied, unparseable or
    indirection-wrapped bash (`bash -c`, `sudo`, `eval`, `xargs`) fails closed to
@@ -98,12 +93,8 @@ directly with the terminal toolset instead of delegating.
 - Never loosen the global policy: `git *` stays `deny` and `external_directory`
   stays `deny`, even if pi asks for more access. Project configs can only
   tighten, and untrusted dirs (like the work copy) load none at all.
-- No `ask` rules in this policy on purpose: `pi -p` runs are unattended and an
+- No `ask` rules in this policy on purpose: SDK runs are unattended and an
   unanswered prompt only times out to deny after 60s. Keep it that way.
-- The OpenRouter key lives in AWS SSM (region il-central-1) at
-  `/hermes/openrouter_key`; fetch it per-run as shown in step 2 and export it
-  as `OPENROUTER_API_KEY`. Without it the auto-mode judge blocks every bash
-  command.
 - The pi-auto-mode bash-command gate lives in /root/pi-auto-mode (local checkout
   of github.com/5c077m4n/pi-auto-mode). The SDK's default resource loader picks
   it up automatically once installed via `pi install git:github.com/5c077m4n/pi-auto-mode`.
@@ -116,18 +107,13 @@ directly with the terminal toolset instead of delegating.
   `npm update/install` prunes extraneous packages and typechecking breaks
   mysteriously. The runner script sidesteps this by installing into its own
   temp dir.
-- Never run `npm install` in a project whose `node_modules` is (or was) a
-  symlink into pi's managed install tree — npm follows the link and prunes pi's
-  own packages, leaving the `pi` launcher unable to start. Repair with `npm ci`
-  inside `/root/.pi/agent/install/releases/<version>`.
 - A large diff still needs review before applying; show the user the summary.
 - If pi exits non-zero, treat the diff as unreliable and do not apply it.
 - Never run `npm install` in a project whose `node_modules` is (or was) a
   symlink into pi's managed install tree — npm follows the link and prunes pi's
   own packages, leaving the `pi` launcher unable to start. Repair with `npm ci`
-  inside `/root/.pi/agent/install/releases/<version>`. Symlink `@earendil-works`
-  into the project's `node_modules` only AFTER npm has finished, for
-  typechecking.
+  inside `/root/.pi/agent/install/releases/<version>`. The runner project
+  sidesteps this by living in its own directory.
 - Writing a pi extension (tool-call gate, command, hook): follow
   `references/pi-extensions.md`.
 - SDK reference examples live at

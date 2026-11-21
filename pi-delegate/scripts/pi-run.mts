@@ -1,6 +1,5 @@
 // Runner: executes one pi task via the official SDK, non-interactively.
 // Usage: npx tsx pi-run.mts "<task description>" (cwd = pi's work directory).
-// OPENROUTER_API_KEY must be exported in the environment (see SKILL.md step 2).
 import { createAgentSession, ModelRuntime, SessionManager } from "@earendil-works/pi-coding-agent";
 
 const task = process.argv[2];
@@ -10,7 +9,6 @@ if (!task) {
 }
 
 const modelRuntime = await ModelRuntime.create();
-await modelRuntime.setRuntimeApiKey("openrouter", process.env.OPENROUTER_API_KEY!);
 
 const { session } = await createAgentSession({
 	cwd: process.cwd(),
