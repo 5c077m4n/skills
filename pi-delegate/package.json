@@ -3,11 +3,11 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"predelegate": "pi install npm:@gotgenes/pi-permission-system && pi install git:github.com/5c077m4n/pi-auto-mode",
+		"predelegate": "bash scripts/predelegate.sh",
 		"delegate": "tsx scripts/pi-run.ts"
 	},
 	"dependencies": {
-		"@earendil-works/pi-coding-agent": "latest",
-		"tsx": "latest"
+		"@earendil-works/pi-coding-agent": "1.6.0",
+		"tsx": "4.23.15"
 	}
 }
