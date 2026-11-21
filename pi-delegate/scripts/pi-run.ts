@@ -36,6 +36,9 @@ try {
 		}
 	});
 	await session.prompt(values.task);
+} catch (error) {
+	console.error("pi-run failed:", error);
+	process.exit(1);
 } finally {
 	session.dispose();
 }
