@@ -3,7 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"delegate": "tsx scripts/pi-run.mts"
+		"delegate": "tsx scripts/pi-run.ts"
 	},
 	"dependencies": {
 		"@earendil-works/pi-coding-agent": "latest",
