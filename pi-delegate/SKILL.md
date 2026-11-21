@@ -55,7 +55,10 @@ directly with the terminal toolset instead of delegating.
 
 2. The runner is a self-contained node project (`package.json` + `package-lock.json`,
    deps `@earendil-works/pi-coding-agent` + `tsx`). Install it once, then run pi
-   via the SDK in the work copy (provider auth comes from pi's own auth store):
+   via the SDK in the work copy (provider auth comes from pi's own auth store).
+   The `predelegate` npm script installs the two plugins into pi's agent dir
+   (`pi-permission-system` — the policy layer, and `pi-auto-mode` — the
+   bash-command judge) before `delegate` runs:
 
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
@@ -110,8 +113,8 @@ directly with the terminal toolset instead of delegating.
 - No `ask` rules in this policy on purpose: SDK runs are unattended and an
   unanswered prompt only times out to deny after 60s. Keep it that way.
 - The pi-auto-mode bash-command gate lives in /root/pi-auto-mode (local checkout
-  of github.com/5c077m4n/pi-auto-mode). The SDK's default resource loader picks
-  it up automatically once installed via `pi install git:github.com/5c077m4n/pi-auto-mode`.
+  of github.com/5c077m4n/pi-auto-mode). The `predelegate` npm script installs it
+  into pi's agent dir; the SDK's default resource loader picks it up from there.
 - Declare type-only imports (e.g. `@earendil-works/pi-coding-agent`) as real
   devDependencies in a package.json with a committed lockfile — not ad-hoc
   node_modules installs: any later `npm update/install` prunes extraneous

@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"predelegate": "pi install npm:@gotgenes/pi-permission-system && pi install git:github.com/5c077m4n/pi-auto-mode",
 		"delegate": "tsx scripts/pi-run.ts"
 	},
 	"dependencies": {
