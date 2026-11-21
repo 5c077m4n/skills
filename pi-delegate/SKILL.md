@@ -60,7 +60,7 @@ directly with the terminal toolset instead of delegating.
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
    (cd "$RUNNER" && npm ci --no-fund --no-audit >/dev/null)
-   (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.ts" "<task description>")
+   (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.ts" --task "<task description>" --cwd "$WORK")
    ```
 
    The runner imports `createAgentSession`, `DefaultResourceLoader`,

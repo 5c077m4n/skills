@@ -1,21 +1,28 @@
 // Runner: executes one pi task via the official SDK, non-interactively.
-// Usage: npx tsx pi-run.ts "<task description>" (cwd = pi's work directory).
+// Usage: npx tsx pi-run.ts --task "<task description>" [--cwd <dir>].
+import { parseArgs } from "node:util";
 import { createAgentSession, DefaultResourceLoader, getAgentDir, SessionManager } from "@earendil-works/pi-coding-agent";
 
-const task = process.argv[2];
-if (!task) {
-	console.error("usage: npx tsx pi-run.ts \"<task>\"");
+const { values } = parseArgs({
+	options: {
+		cwd: { type: "string" },
+		task: { type: "string" },
+	},
+});
+if (!values.task) {
+	console.error("usage: npx tsx pi-run.ts --task \"<task>\" [--cwd <dir>]");
 	process.exit(2);
 }
+const cwd = values.cwd ?? process.cwd();
 
 const resourceLoader = new DefaultResourceLoader({
-	cwd: process.cwd(),
+	cwd,
 	agentDir: getAgentDir(),
 });
 await resourceLoader.reload();
 
 const { session } = await createAgentSession({
-	cwd: process.cwd(),
+	cwd,
 	resourceLoader,
 	sessionManager: SessionManager.inMemory(),
 });
@@ -27,7 +34,7 @@ try {
 		}
 	});
 	await session.prompt(
-		task +
+		values.task +
 			" Strict rule: do NOT run any git command. Work only inside this directory. " +
 			"When finished, print ONLY the unified diff of every change you made — no prose, no summaries.",
 	);
