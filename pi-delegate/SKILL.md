@@ -95,6 +95,13 @@ directly with the terminal toolset instead of delegating.
 6. Continue the task in the workspace (build, test, fix-ups), report the result
    to the user, and delete `pi-task.patch` once applied.
 
+7. Remove pi's temp workdir once the task is complete (the patch is the only
+   thing that carries over):
+
+   ```bash
+   rm -rf "$PRISTINE" "$WORK"
+   ```
+
 ## Pitfalls
 
 - Never loosen the global policy: `git *` stays `deny` and `external_directory`
