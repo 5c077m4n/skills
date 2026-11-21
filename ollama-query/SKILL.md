@@ -38,11 +38,19 @@ API key) or asks to "ask the local model".
 
 ## Notes
 
-- Requires a running Ollama server (`ollama serve`, default `http://localhost:11434`).
-  Override the endpoint with `--host`.
+- If no Ollama server is running (default `http://localhost:11434`), the script
+  starts one itself (`ollama serve`) and kills it after the query. Pass
+  `--host` to use an existing server instead — a custom host is never started
+  or stopped, only probed.
 - The 70% budget leaves room for the OS and the model's KV cache. On a GPU
   host the budget is total VRAM; otherwise it is system RAM.
 - If no installed model fits the budget the script exits with an error
   suggesting `ollama pull <smaller-model>`.
 - Pinned dependencies: `ollama` SDK and `tsx` (exact versions in
   `package.json` with a committed `package-lock.json`).
+- Import `{ Ollama }` (named export) from "ollama" — the default export is
+  not a constructor, so `new Ollama()` fails with "Ollama is not a
+  constructor".
+- Wrap the whole run in try/catch: without a reachable Ollama server the SDK
+  throws `fetch failed`/`ECONNREFUSED`; log to stderr and exit 1 instead of
+  crashing with a stack trace.

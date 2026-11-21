@@ -1,7 +1,7 @@
 // Query a local Ollama model that best fits the host hardware.
 // Usage: npm run query -- --prompt "<text>" [--host <url>]
 import os from "node:os";
-import { execFile } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { parseArgs } from "node:util";
 import { Ollama } from "ollama";
@@ -44,6 +44,46 @@ async function bestModel(ollama: Ollama): Promise<string> {
 	return fits[0].model;
 }
 
+async function serverUp(ollama: Ollama): Promise<boolean> {
+	try {
+		await ollama.list();
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+async function ensureServer(ollama: Ollama, host?: string): Promise<void> {
+	if (await serverUp(ollama)) {
+		return;
+	}
+	if (host) {
+		throw new Error(`no Ollama server at ${host}`);
+	}
+	const serve = spawn("ollama", ["serve"], { stdio: "ignore" });
+	const spawnError = new Promise<never>((_, reject) => {
+		serve.on("error", () => {
+			reject(new Error("ollama is not installed and no server is running"));
+		});
+	});
+	const waitUp = (async () => {
+		for (let attempt = 0; attempt < 40; attempt += 1) {
+			if (await serverUp(ollama)) {
+				return;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		serve.kill();
+		throw new Error("started ollama serve but the server never came up");
+	})();
+	try {
+		await Promise.race([waitUp, spawnError]);
+	} catch (error) {
+		serve.kill();
+		throw error;
+	}
+}
+
 async function main(): Promise<void> {
 	const { values } = parseArgs({
 		options: {
@@ -53,6 +93,7 @@ async function main(): Promise<void> {
 	});
 
 	const ollama = new Ollama(values.host ? { host: values.host } : {});
+	await ensureServer(ollama, values.host);
 
 	const model = await bestModel(ollama);
 	console.error(`using ${model}`);
