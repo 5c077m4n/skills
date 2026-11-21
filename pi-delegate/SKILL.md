@@ -43,14 +43,14 @@ directly with the terminal toolset instead of delegating.
 
 ## Procedure
 
-1. Snapshot the workspace into two temp dirs (pristine + work). Exclude `.git`
-   so the work copy has no repo history at all:
+1. Give pi a **clone** of the workspace, never the original. Make two local
+   clones (pristine + work); pi edits only the work clone:
 
    ```bash
    SRC="$(pwd)"
    EXCLUDES="--exclude .git --exclude node_modules --exclude .terraform --exclude *.tfstate --exclude pi-task.patch"
    PRISTINE="$(mktemp -d)" ; WORK="$(mktemp -d)"
-   rsync -a $EXCLUDES "$SRC/" "$PRISTINE/" ; rsync -a $EXCLUDES "$SRC/" "$WORK/"
+   git clone --no-hardlinks "$SRC" "$PRISTINE" && git clone --no-hardlinks "$SRC" "$WORK"
    ```
 
 2. The runner is a self-contained node project (`package.json` + `package-lock.json`,
