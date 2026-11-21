@@ -112,10 +112,6 @@ directly with the terminal toolset instead of delegating.
 - The pi-auto-mode bash-command gate lives in /root/pi-auto-mode (local checkout
   of github.com/5c077m4n/pi-auto-mode). The SDK's default resource loader picks
   it up automatically once installed via `pi install git:github.com/5c077m4n/pi-auto-mode`.
-  Push from that repo needs the token embedded in the remote URL:
-  `git remote set-url origin "https://5c077m4n:${GH_TOKEN}@github.com/5c077m4n/pi-auto-mode.git"`
-  (source GH_TOKEN from SSM `/hermes/gh_token`), push, then reset the URL to
-  the clean https form.
 - Declare type-only imports (e.g. `@earendil-works/pi-coding-agent`) as real
   devDependencies in a package.json with a committed lockfile — not ad-hoc
   node_modules installs: any later `npm update/install` prunes extraneous
@@ -127,6 +123,7 @@ directly with the terminal toolset instead of delegating.
   inside `/root/.pi/agent/install/releases/<version>`.
 - A large diff still needs review before applying; show the user the summary.
 - If pi exits non-zero, treat the diff as unreliable and do not apply it.
+- The skills repo root carries untracked curator metadata (`.hub/`, `.curator_ledger.jsonl`, `.bundled_manifest`, other skill dirs) — stage only the skill's own files (`git add <skill>/...`), never `git add -A` from the repo root.
 - Writing a pi extension (tool-call gate, command, hook): follow
   `references/pi-extensions.md`.
 - SDK reference examples live at
