@@ -12,12 +12,12 @@ metadata:
 
 # Pi Delegate
 
-Hand large coding tasks to the pi coding agent, running non-interactively
-(`pi -p`) under the `@gotgenes/pi-permission-system` plugin. pi never runs git
-and never reaches outside its work directory: the permission policy denies every
-`git *` bash command and sets `external_directory: deny`. pi works on a
-disposable copy of the workspace and returns a unified diff, which hermes
-reviews, applies, and continues from.
+Hand large coding tasks to the pi coding agent, driven through the official
+SDK (`@earendil-works/pi-coding-agent`) by the runner script in
+`scripts/pi-run.mts`. pi never runs git and never reaches outside its work
+directory: the permission policy denies every `git *` bash command and sets
+`external_directory: deny`. pi works on a disposable copy of the workspace and
+returns a unified diff, which hermes reviews, applies, and continues from.
 
 No Docker is involved — pi runs directly on the machine; the permission plugin
 is the policy layer.
@@ -51,12 +51,24 @@ directly with the terminal toolset instead of delegating.
    rsync -a $EXCLUDES "$SRC/" "$PRISTINE/" ; rsync -a $EXCLUDES "$SRC/" "$WORK/"
    ```
 
-2. Run pi non-interactively in the work copy:
+2. The runner is a self-contained node project (`package.json` + `package-lock.json`,
+   deps `@earendil-works/pi-coding-agent` + `tsx`). Install it once, then run pi
+   via the SDK in the work copy. The OpenRouter key is fetched from AWS SSM
+   per-run and never written to disk:
 
    ```bash
-   (cd "$WORK" && pi -p "<task description>. Strict rule: do NOT run any git
-   command. Work only inside this directory.")
+   RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
+   (cd "$RUNNER" && npm install --no-fund --no-audit >/dev/null)
+
+   export OPENROUTER_API_KEY="$(aws ssm get-parameter --region il-central-1 \
+     --name /hermes/openrouter_key --with-decryption --query Parameter.Value --output text)"
+   (cd "$WORK" && "$RUNNER/node_modules/.bin/tsx" "$RUNNER/scripts/pi-run.mts" "<task description>")
    ```
+
+   The runner imports `createAgentSession` / `ModelRuntime` from
+   `@earendil-works/pi-coding-agent`, sets the OpenRouter key via
+   `modelRuntime.setRuntimeApiKey("openrouter", …)`, streams text deltas to
+   stdout, and disposes the session in a `finally` block.
 
    The plugin gates every tool call: `git *` is denied, unparseable or
    indirection-wrapped bash (`bash -c`, `sudo`, `eval`, `xargs`) fails closed to
@@ -88,24 +100,26 @@ directly with the terminal toolset instead of delegating.
   tighten, and untrusted dirs (like the work copy) load none at all.
 - No `ask` rules in this policy on purpose: `pi -p` runs are unattended and an
   unanswered prompt only times out to deny after 60s. Keep it that way.
-- pi's binary lives at `/root/.pi/agent/bin/pi` (not on the default PATH). Never
-  invoke it as `npx pi` — npm's `pi` package is a different program that exits 0
-  printing a bare "3" for every invocation, including `--version`, so failures
-  look like successes. `export PATH=/root/.pi/agent/bin:$PATH` instead.
+- The OpenRouter key lives in AWS SSM (region il-central-1) at
+  `/hermes/openrouter_key`; fetch it per-run as shown in step 2 and export it
+  as `OPENROUTER_API_KEY`. Without it the auto-mode judge blocks every bash
+  command.
 - The pi-auto-mode bash-command gate lives in /root/pi-auto-mode (local checkout
-  of github.com/5c077m4n/pi-auto-mode). Run it with `pi -e /root/pi-auto-mode`
-  and OPENROUTER_API_KEY in env (it lives in /var/lib/hermes/home/.env); without
-  the key it blocks every bash command. Push from that repo needs the token
-  embedded in the remote URL:
+  of github.com/5c077m4n/pi-auto-mode). The SDK's default resource loader picks
+  it up automatically once installed via `pi install git:github.com/5c077m4n/pi-auto-mode`.
+  Push from that repo needs the token embedded in the remote URL:
   `git remote set-url origin "https://5c077m4n:${GH_TOKEN}@github.com/5c077m4n/pi-auto-mode.git"`
-  (source GH_TOKEN from /var/lib/hermes/home/.env), push, then reset the URL to
+  (source GH_TOKEN from SSM `/hermes/gh_token`), push, then reset the URL to
   the clean https form.
 - Declare type-only imports (e.g. `@earendil-works/pi-coding-agent`) as real
   devDependencies, not ad-hoc node_modules installs: any later
-  `npm
-  update/install` prunes extraneous packages and typechecking breaks
-  mysteriously. Symlinking into node_modules is only for projects that must not
-  take the dependency.
+  `npm update/install` prunes extraneous packages and typechecking breaks
+  mysteriously. The runner script sidesteps this by installing into its own
+  temp dir.
+- Never run `npm install` in a project whose `node_modules` is (or was) a
+  symlink into pi's managed install tree — npm follows the link and prunes pi's
+  own packages, leaving the `pi` launcher unable to start. Repair with `npm ci`
+  inside `/root/.pi/agent/install/releases/<version>`.
 - A large diff still needs review before applying; show the user the summary.
 - If pi exits non-zero, treat the diff as unreliable and do not apply it.
 - Never run `npm install` in a project whose `node_modules` is (or was) a
@@ -116,3 +130,5 @@ directly with the terminal toolset instead of delegating.
   typechecking.
 - Writing a pi extension (tool-call gate, command, hook): follow
   `references/pi-extensions.md`.
+- SDK reference examples live at
+  https://github.com/earendil-works/pi/tree/main/packages/coding-agent/examples/sdk.

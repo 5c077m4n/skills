@@ -1,0 +1,12 @@
+{
+	"name": "pi-delegate-runner",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"delegate": "tsx scripts/pi-run.mts"
+	},
+	"dependencies": {
+		"@earendil-works/pi-coding-agent": "latest",
+		"tsx": "latest"
+	}
+}
