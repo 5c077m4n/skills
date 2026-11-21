@@ -58,7 +58,8 @@ directly with the terminal toolset instead of delegating.
    via the SDK in the work copy (provider auth comes from pi's own auth store).
    The `predelegate` npm script installs the two plugins into pi's agent dir
    (`pi-permission-system` — the policy layer, and `pi-auto-mode` — the
-   bash-command judge) before `delegate` runs:
+   bash-command judge) before `delegate` runs; pi's binary must be on PATH
+   (`/root/.pi/agent/bin`) for the script to find it:
 
    ```bash
    RUNNER="<skill_dir>"   # e.g. /var/lib/hermes/home/skills/pi-delegate
